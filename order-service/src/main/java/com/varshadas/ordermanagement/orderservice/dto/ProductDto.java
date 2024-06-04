@@ -1,19 +1,20 @@
-package com.varshadas.ordermanagement.productservice.dto;
+package com.varshadas.ordermanagement.orderservice.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProductDTO {
-    private Long id;
-    private String name;
-    private String description;
+@Builder
+public class ProductDto {
+
     private String skuCode;
     private int quantity;
-    private double price;
+    private BigDecimal price;
 }
 
