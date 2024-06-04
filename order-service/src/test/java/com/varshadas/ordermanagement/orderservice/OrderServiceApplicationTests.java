@@ -1,4 +1,4 @@
-package com.varshadas.orderservice;
+package com.varshadas.ordermanagement.orderservice;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
