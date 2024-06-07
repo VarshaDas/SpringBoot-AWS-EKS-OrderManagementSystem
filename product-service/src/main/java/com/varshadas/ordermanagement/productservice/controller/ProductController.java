@@ -1,6 +1,5 @@
 package com.varshadas.ordermanagement.productservice.controller;
 
-import com.varshadas.ordermanagement.productservice.dto.ProductAvailability;
 import com.varshadas.ordermanagement.productservice.dto.ProductAvailabilityResponse;
 import com.varshadas.ordermanagement.productservice.dto.ProductDTO;
 import com.varshadas.ordermanagement.productservice.service.ProductService;
@@ -17,10 +16,10 @@ public class ProductController {
     @Autowired
     private ProductService productService;
 
-//    @GetMapping
-//    public List<ProductDTO> getAllProducts() {
-//        return productService.getAllProducts();
-//    }
+    @GetMapping("/all")
+    public String testALlProducts() {
+        return "all products";
+    }
 
 //    @GetMapping("/{id}")
 //    public ResponseEntity<ProductDTO> getProductById(@PathVariable Long id) {

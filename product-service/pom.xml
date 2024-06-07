@@ -59,8 +59,12 @@
 						</exclude>
 					</excludes>
 				</configuration>
+
 			</plugin>
+
 		</plugins>
+		<finalName>ordermanagement-product-service</finalName>
+
 	</build>
 
 </project>
