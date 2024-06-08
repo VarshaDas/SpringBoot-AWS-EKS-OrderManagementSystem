@@ -13,3 +13,10 @@ actuator
 global exception handler
 
 kafka consumer
+
+eks connect 
+rds connect
+
+eks and rds 
+
+docker set up
