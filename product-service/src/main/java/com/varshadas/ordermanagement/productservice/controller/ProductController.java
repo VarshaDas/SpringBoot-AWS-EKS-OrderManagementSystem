@@ -39,16 +39,11 @@ public class ProductController {
         return ResponseEntity.ok(updatedProduct);
     }
 
-//    @DeleteMapping("/{id}")
-//    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-//        productService.deleteProduct(id);
-//        return ResponseEntity.noContent().build();
-//    }
 
     @PostMapping("/availability")
     public ResponseEntity<ProductAvailabilityResponse> checkProductAvailability(@RequestBody List<ProductDTO> products) {
         ProductAvailabilityResponse availabilityList = productService.checkProductAvailability(products);
-        ResponseEntity<ProductAvailabilityResponse> a =  ResponseEntity.status(HttpStatus.OK).body(availabilityList);
-        return a;
+        ResponseEntity<ProductAvailabilityResponse> availabilityResponse =  ResponseEntity.status(HttpStatus.OK).body(availabilityList);
+        return availabilityResponse;
     }
 }

@@ -1,5 +1,6 @@
 package com.varshadas.ordermanagement.orderservice.client;
 
+import com.varshadas.ordermanagement.orderservice.dto.OrderItemDto;
 import com.varshadas.ordermanagement.orderservice.dto.ProductAvailabilityResponse;
 import com.varshadas.ordermanagement.orderservice.dto.ProductDto;
 import com.varshadas.ordermanagement.orderservice.dto.ProductAvailability;
@@ -31,13 +32,13 @@ public class ProductServiceClient  {
         this.restTemplate = restTemplate;
     }
 
-    public List<ProductAvailability> checkProductAvailability(List<ProductDto> products) {
+    public List<ProductAvailability> checkProductAvailability(List<OrderItemDto> products) {
         String checkAvailabilityUrl = productServiceUrl + "/availability";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<List<ProductDto>> requestEntity = new HttpEntity<>(products, headers);
+        HttpEntity<List<OrderItemDto>> requestEntity = new HttpEntity<>(products, headers);
 
         try {
             ResponseEntity<ProductAvailabilityResponse> response = restTemplate.exchange(
