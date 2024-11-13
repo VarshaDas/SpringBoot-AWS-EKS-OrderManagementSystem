@@ -1,12 +1,18 @@
 package com.varshadas.ordermanagement.orderservice.controller;
 
 import com.varshadas.ordermanagement.orderservice.client.ProductServiceClient;
-import com.varshadas.ordermanagement.orderservice.dto.*;
+import com.varshadas.ordermanagement.orderservice.dto.OrderDto;
+import com.varshadas.ordermanagement.orderservice.dto.OrderItemDto;
+import com.varshadas.ordermanagement.orderservice.dto.OrderResponse;
+import com.varshadas.ordermanagement.orderservice.dto.ProductAvailability;
+import com.varshadas.ordermanagement.orderservice.kafka.OrderProducer;
+import com.varshadas.ordermanagement.orderservice.service.OrderService;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,57 +22,64 @@ import java.util.stream.Collectors;
 @Slf4j
 public class OrderController {
 
-    @Autowired
-    private OrderService orderService;
+    private final OrderService orderService;
+    private final ProductServiceClient productServiceClient;
+    private final OrderProducer orderProducer;
 
-    @Autowired
-    private ProductServiceClient productServiceClient;
-
-    @GetMapping
-    public ResponseEntity<List<OrderDto>> getAllOrders() {
-        return ResponseEntity.ok(orderService.getAllOrders());
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<OrderDto> getOrderById(@PathVariable Long id) {
-        return ResponseEntity.ok(orderService.getOrderById(id));
+    public OrderController(OrderService orderService, ProductServiceClient productServiceClient, OrderProducer orderProducer) {
+        this.orderService = orderService;
+        this.productServiceClient = productServiceClient;
+        this.orderProducer = orderProducer;
     }
 
     @PostMapping("/create")
-    public ResponseEntity<OrderResponse> createOrder(@RequestBody OrderDto orderDto) {
-        List<ProductDto> availabilityRequests = orderDto.getOrderItems().stream()
-                .map(item -> ProductDto.builder()
-                        .skuCode(item.getSkuCode())
-                        .price(item.getPrice())
-                        .quantity(item.getQuantity()).build())
-                .collect(Collectors.toList());
+    public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody OrderDto orderDto) {
+        try {
+            // Filter available items by checking with ProductService
+            List<ProductAvailability> availabilityList = productServiceClient.checkProductAvailability(orderDto.getOrderItems());
 
-        List<ProductAvailability> availabilityList = productServiceClient.checkProductAvailability(availabilityRequests);
+            // Filter available items based on the availability response
+            List<OrderItemDto> availableItems = orderDto.getOrderItems().stream()
+                    .filter(item -> orderService.isProductAvailable(item.getSkuCode(), availabilityList))
+                    .collect(Collectors.toList());
 
-
-        log.info("availabilityList {}", availabilityList);
-        for (ProductAvailability productAvailability : availabilityList) {
-            log.info("productAvailability {}", productAvailability);
-            if (!productAvailability.isAvailable()) {
+            // Handle case where no items are available
+            if (availableItems.isEmpty()) {
+                log.warn("No items available in the order request.");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(new OrderResponse(null, "Product " + productAvailability.getSkuCode() + " is not available"));
+                        .body(new OrderResponse("No items available for the order."));
             }
+            // Update the order with available items only
+            orderDto.setOrderItems(availableItems);
+
+            // Save the order in the database
+            OrderResponse orderResponse = orderService.createOrder(orderDto);
+
+            if (orderResponse != null) {
+                log.info("Order placed successfully, sending 'Order Placed' event to Kafka...");
+                orderDto.setId(orderResponse.getOrderId());
+                orderProducer.sendOrderEvent(orderDto, "placed");  // Send event to Kafka
+            }
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(orderResponse);
+        } catch (Exception e) {
+            log.error("Error while creating order", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to create order");
         }
+    }
 
-        OrderResponse orderResponse = orderService.createOrder(orderDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderResponse);
+    @PutMapping("/cancel/{id}")
+    public ResponseEntity<OrderResponse> cancelOrder(@PathVariable Long id) {
+        try {
+
+            OrderResponse orderResponse = orderService.cancelOrder(id);
+            return ResponseEntity.ok(orderResponse);
+        } catch (Exception e) {
+            log.error("Error while cancelling order", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to cancel order");
+        }
     }
 
 
-    @PutMapping("/{id}")
-    public ResponseEntity<OrderDto> updateOrder(@PathVariable Long id, @RequestBody OrderDto orderDto) {
-        return ResponseEntity.ok(orderService.updateOrder(id, orderDto));
-    }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteOrder(@PathVariable Long id) {
-        orderService.deleteOrder(id);
-        return ResponseEntity.noContent().build();
-    }
 }
-

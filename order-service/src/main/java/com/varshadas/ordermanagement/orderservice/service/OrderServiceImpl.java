@@ -3,15 +3,16 @@ package com.varshadas.ordermanagement.orderservice.service;
 import com.varshadas.ordermanagement.orderservice.dto.OrderDto;
 import com.varshadas.ordermanagement.orderservice.dto.OrderItemDto;
 import com.varshadas.ordermanagement.orderservice.dto.OrderResponse;
-import com.varshadas.ordermanagement.orderservice.dto.OrderService;
+import com.varshadas.ordermanagement.orderservice.dto.ProductAvailability;
 import com.varshadas.ordermanagement.orderservice.entity.Order;
 import com.varshadas.ordermanagement.orderservice.entity.OrderItem;
+import com.varshadas.ordermanagement.orderservice.entity.OrderStatus;
+import com.varshadas.ordermanagement.orderservice.kafka.OrderProducer;
 import com.varshadas.ordermanagement.orderservice.repository.OrderRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,6 +21,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private OrderRepository orderRepository;
+
+    @Autowired
+    OrderProducer orderProducer;
 
     @Override
     public List<OrderDto> getAllOrders() {
@@ -32,60 +36,33 @@ public class OrderServiceImpl implements OrderService {
         return convertToDto(order);
     }
 
-//    @Override
-//    @Transactional
-//    public OrderResponse createOrder(OrderDto orderDto) {
-//        Order order = convertToEntity(orderDto);
-//        order = orderRepository.save(order);
-//        OrderResponse orderResponse = OrderResponse.builder()
-//                .orderId(order.getId())
-//                //todo - change later
-//                .status("Confirmed")
-//                .build();
-//
-//        return orderResponse;
-//    }
-
-
     @Override
     @Transactional
     public OrderResponse createOrder(OrderDto orderDto) {
-        // Convert OrderDto to Order entity
         Order order = convertToEntity(orderDto);
 
-        // Iterate over each OrderItemDto in the OrderDto
-        List<OrderItem> orderItemList = new ArrayList<>();
-        for (OrderItemDto orderItemDto : orderDto.getOrderItems()) {
-            // Create an OrderItem entity and set its properties
-            OrderItem orderItem = new OrderItem();
-            orderItem.setProductId(orderItemDto.getSkuCode());
-            orderItem.setProductName(orderItemDto.getProductName());
-            orderItem.setQuantity(orderItemDto.getQuantity());
-            orderItem.setPrice(orderItemDto.getPrice());
-
-            // Set the Order reference in the OrderItem entity
-            orderItem.setOrder(order);
-            orderItemList.add(orderItem);
-
-            // Add the OrderItem to the Order's list of OrderItems
-        }
+        Order finalOrder = order;
+        List<OrderItem> orderItemList = orderDto.getOrderItems().stream()
+                .map(itemDto -> {
+                    OrderItem orderItem = new OrderItem();
+                    orderItem.setProductId(itemDto.getSkuCode());
+                    orderItem.setProductName(itemDto.getProductName());
+                    orderItem.setQuantity(itemDto.getQuantity());
+                    orderItem.setPrice(itemDto.getPrice());
+                    orderItem.setOrder(finalOrder);
+                    return orderItem;
+                })
+                .collect(Collectors.toList());
 
         order.setOrderItems(orderItemList);
-
-
-        // Save the Order entity to the database
+        order.setOrderStatus(OrderStatus.ORDER_PLACED.name());
         order = orderRepository.save(order);
 
-        // Create and return the OrderResponse
-        OrderResponse orderResponse = OrderResponse.builder()
+        return OrderResponse.builder()
                 .orderId(order.getId())
-                //todo - change later
-                .status("Confirmed")
+                .status("ORDER PLACED")
                 .build();
-
-        return orderResponse;
     }
-
 
     @Override
     public OrderDto updateOrder(Long id, OrderDto orderDto) {
@@ -93,9 +70,10 @@ public class OrderServiceImpl implements OrderService {
         order.setTotalPrice(orderDto.getTotalPrice());
         order.setOrderDate(orderDto.getOrderDate());
 
-        // Update order items
         order.getOrderItems().clear();
-        order.getOrderItems().addAll(orderDto.getOrderItems().stream().map(this::convertToEntity).collect(Collectors.toList()));
+        order.getOrderItems().addAll(orderDto.getOrderItems().stream()
+                .map(this::convertToEntity)
+                .collect(Collectors.toList()));
 
         order = orderRepository.save(order);
         return convertToDto(order);
@@ -106,6 +84,29 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.deleteById(id);
     }
 
+    @Transactional
+    @Override
+    public OrderResponse cancelOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
+
+        if(!order.getOrderStatus().equals("ORDER_CANCELLED")){
+            order.setOrderStatus("Order Cancelled");
+            orderRepository.save(order);
+        }
+
+
+        OrderDto orderDto = new OrderDto();
+        orderDto.setId(order.getId());
+        orderDto.setTotalPrice(order.getTotalPrice());
+        orderDto.setOrderDate(order.getOrderDate());
+        orderDto.setOrderItems(order.getOrderItems().stream()
+                .map(item -> new OrderItemDto(item.getProductId(), item.getQuantity()))  // Assuming constructor or converter for OrderItemDto
+                .collect(Collectors.toList()));
+
+        orderProducer.sendOrderEvent(orderDto, "cancelled");  // Send cancellation event with full order data
+        return new OrderResponse(order);  // Return updated order response
+    }
     private OrderDto convertToDto(Order order) {
         return OrderDto.builder()
                 .id(order.getId())
@@ -140,5 +141,19 @@ public class OrderServiceImpl implements OrderService {
                 .quantity(orderItemDto.getQuantity())
                 .price(orderItemDto.getPrice())
                 .build();
+    }
+
+
+    /**
+     * Checks if the product is available based on the SKU code and availability list.
+     *
+     * @param skuCode          The SKU code of the product.
+     * @param availabilityList The list of product availability.
+     * @return true if the product is available; otherwise false.
+     */
+    @Override
+    public boolean isProductAvailable(String skuCode, List<ProductAvailability> availabilityList) {
+        return availabilityList.stream()
+                .anyMatch(availability -> availability.getSkuCode().equals(skuCode) && availability.isAvailable());
     }
 }

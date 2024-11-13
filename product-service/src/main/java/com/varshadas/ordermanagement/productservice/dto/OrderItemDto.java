@@ -1,4 +1,4 @@
-package com.varshadas.ordermanagement.orderservice.dto;
+package com.varshadas.ordermanagement.productservice.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,12 +15,6 @@ import java.math.BigDecimal;
 public class OrderItemDto {
     private Long id;
     private String skuCode;
-
-    public OrderItemDto(String skuCode, int quantity) {
-        this.skuCode = skuCode;
-        this.quantity = quantity;
-    }
-
     private String productName;
     private int quantity;
     private BigDecimal price;

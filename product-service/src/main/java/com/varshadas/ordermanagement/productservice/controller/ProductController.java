@@ -1,6 +1,5 @@
 package com.varshadas.ordermanagement.productservice.controller;
 
-import com.varshadas.ordermanagement.productservice.dto.ProductAvailability;
 import com.varshadas.ordermanagement.productservice.dto.ProductAvailabilityResponse;
 import com.varshadas.ordermanagement.productservice.dto.ProductDTO;
 import com.varshadas.ordermanagement.productservice.service.ProductService;
@@ -17,10 +16,10 @@ public class ProductController {
     @Autowired
     private ProductService productService;
 
-//    @GetMapping
-//    public List<ProductDTO> getAllProducts() {
-//        return productService.getAllProducts();
-//    }
+    @GetMapping("/all")
+    public String testALlProducts() {
+        return "all products";
+    }
 
 //    @GetMapping("/{id}")
 //    public ResponseEntity<ProductDTO> getProductById(@PathVariable Long id) {
@@ -40,16 +39,11 @@ public class ProductController {
         return ResponseEntity.ok(updatedProduct);
     }
 
-//    @DeleteMapping("/{id}")
-//    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-//        productService.deleteProduct(id);
-//        return ResponseEntity.noContent().build();
-//    }
 
     @PostMapping("/availability")
     public ResponseEntity<ProductAvailabilityResponse> checkProductAvailability(@RequestBody List<ProductDTO> products) {
         ProductAvailabilityResponse availabilityList = productService.checkProductAvailability(products);
-        ResponseEntity<ProductAvailabilityResponse> a =  ResponseEntity.status(HttpStatus.OK).body(availabilityList);
-        return a;
+        ResponseEntity<ProductAvailabilityResponse> availabilityResponse =  ResponseEntity.status(HttpStatus.OK).body(availabilityList);
+        return availabilityResponse;
     }
 }
