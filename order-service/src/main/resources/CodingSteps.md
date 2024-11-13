@@ -7,7 +7,7 @@
 7. Datasource Config
 
 
-PS C:\Users\Varsha> docker run -d -p 3306:3306 --name mysql-container-new -e MYSQL_ROOT_PASSWORD=varsharoot mysql:latest
+PS C:\Users\Varsha> docker run -d -p 3306:3306 --name mysql-container-new -e MYSQL_ROOT_PASSWORD= mysql:latest
 
 PS C:\Users\Varsha> docker exec -it mysql-container-new mysql -u root -p
 

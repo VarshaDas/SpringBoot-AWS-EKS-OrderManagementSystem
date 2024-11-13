@@ -14,7 +14,6 @@ import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
-import java.util.Properties;
 
 @Configuration
 @EnableJpaRepositories(
@@ -31,8 +30,8 @@ public class DatasourceConfiguration {
         dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
         dataSource.setUrl("jdbc:mysql://localhost:3306/inventory");
         //should encrypt
-        dataSource.setUsername("root");
-        dataSource.setPassword("varsharoot");
+        dataSource.setUsername("");
+        dataSource.setPassword("");
         return dataSource;
 
     }

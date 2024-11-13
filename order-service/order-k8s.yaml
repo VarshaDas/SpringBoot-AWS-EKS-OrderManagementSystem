@@ -35,7 +35,7 @@ spec:
                   key: db.password
 
 # kubectl create secret generic db-credentials
-#  --from-literal=db.url=jdbc:mysql://orderdb.cf4ykim046yo.ap-south-1.rds.amazonaws.com:3306/orders --from-literal=db.username=varsharoot --from-literal=db.password=varsharoot
+#  --from-literal=db.url=jdbc:mysql://orderdb.cf4ykim046yo.ap-south-1.rds.amazonaws.com:3306/orders --from-literal=db.username= --from-literal=db.password=varsharoot
 ---
 apiVersion: v1
 kind: Service
