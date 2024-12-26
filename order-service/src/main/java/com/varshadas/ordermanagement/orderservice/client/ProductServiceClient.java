@@ -2,7 +2,6 @@ package com.varshadas.ordermanagement.orderservice.client;
 
 import com.varshadas.ordermanagement.orderservice.dto.OrderItemDto;
 import com.varshadas.ordermanagement.orderservice.dto.ProductAvailabilityResponse;
-import com.varshadas.ordermanagement.orderservice.dto.ProductDto;
 import com.varshadas.ordermanagement.orderservice.dto.ProductAvailability;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
